@@ -12,7 +12,7 @@ class Blockchain:
         #List of transactions
         self.transactions=[]
         self.createBlock(proof=1, previousHash='0')
-
+        self.nodes=set()
     def createBlock(self, proof, previousHash):
         block = {'index': len(self.chain) + 1,
                  'timestamp': str(datetime.datetime.now()),
@@ -66,7 +66,34 @@ class Blockchain:
             'amount': amount})
         return self.getPreviousBlock()['index']+1
 
-    
+    #Function to add nodes to our blockchain
+    def add_node(self,address):
+        parsed_url=urlparse(address)
+        #parsed_url.netloc gives the ip address along with ip address striping off protocol like http
+        self.nodes.add(parsed_url.netloc)
+
+
+    def replace_chain(self):
+        network=self.nodes
+        longest_chain=None
+        longest_chain_length=len(self.chain)
+
+        for node in network:
+            response=requests.request(f'http://{node}/get-chain')
+            if response.status_code == 200 :
+                if longest_chain_length<response.json()['length'] and self.isChainValid(response.json()['chain']):
+                    longest_chain = response.json()['chain']
+                    longest_chain_length = response.json(['length'])
+
+        if longest_chain:
+
+            self.chain = longest_chain
+            return True
+
+        else:
+            return False
+
+
 app = Flask(__name__)
 
 # Create New Object for Blockchain class
